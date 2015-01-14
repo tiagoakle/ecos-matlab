@@ -37,6 +37,18 @@ function [X,fval,exitflag,output,lambda,Tsolve,c,G,h,dims,Aeq,beq] = ecosqp(H,f,
 %     -2  Problem is (primal) infeasible.
 %     -3  Problem is unbounded (dual infeasible).
 %
+%
+%   [X,FVAL,EXITFLAG,INFO] = ECOSQP(...) returns in addition the
+%   INFO struct as returned for the converted problem by ECOS. See the ECOS
+%   documentation for more help on the particular fields of the INFO
+%   struct.
+%
+%   [X,FVAL,EXITFLAG,INFO,TSOLVE] = ECOSQP(...) returns the runtime for
+%   solving the converted problem as returned by ECOS. Note that this can
+%   be different from a "tic; ecosqp(...); toc;" since an initial "square
+%   root factorization" of the Hessian H is to be performed first.
+%
+%
 % This file is an interface for ECOS, and rewrites the QP as a second-order
 % cone program (SOCP) that can be solved by ECOS. The rewriting occurs
 % through an epigraph reformulation of the objective function,
@@ -65,7 +77,7 @@ function [X,fval,exitflag,output,lambda,Tsolve,c,G,h,dims,Aeq,beq] = ecosqp(H,f,
 %
 % See also ECOS ECOSOPTIMSET QUADPROG ECOS_LICENSE
 %
-% (c) A. Domahidi, ETH Zurich & embotech GmbH, Zurich, Switzerland, 2012-14.
+% (c) A. Domahidi, ETH Zurich & embotech GmbH, Zurich, Switzerland, 2012-15.
 
 %% dimension and argument checking
 if( isempty(H) )
@@ -144,7 +156,9 @@ assert( ~isempty(H),'Quadratic programming requires a Hessian.');
 try
     tic
     W = chol(H,'upper');
-    fprintf('ECOSQP: Time for Cholesky: %4.2f seconds\n', toc);
+    if( opts.verbose > 0 )
+        fprintf('ECOSQP: Time for Cholesky: %4.2f seconds\n', toc);
+    end
 catch %#ok<CTCH>
     warning('Hessian not positive definite, using sqrt(H) instead of chol');
     W = sqrt(H);
