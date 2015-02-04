@@ -51,8 +51,12 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
     const mxArray* opts_abstol_inacc = NULL;
     const mxArray* opts_maxit = NULL;
 #ifdef EXPCONE
-    const mxArray* opts_centrality = NULL;
-    const mxArray* opts_potential  = NULL;
+    const mxArray* opts_centrality   = NULL;
+    const mxArray* opts_potential    = NULL;
+    const mxArray* opts_cent_vars    = NULL;
+    const mxArray* opts_init         = NULL;    
+    const mxArray* opts_one_mu       = NULL;    
+    const mxArray* opts_second_order = NULL;
 #endif 
 
     const mxArray* opts_mi_verbose = NULL;
@@ -77,9 +81,9 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
 
 /* change number of infofields according to profiling setting */    
 #if PROFILING > 0 
-#define NINFOFIELDS 16
+#define NINFOFIELDS 29
 #else 
-#define NINFOFIELDS 15
+#define NINFOFIELDS 28
 #endif
     const char *infofields[NINFOFIELDS] = { "exitflag",
                                             "infostring",
@@ -95,7 +99,20 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
                                             "relgap",   
                                             "r0",
                                             "numerr",
-                                            "iter"                                      
+                                            "iter",
+                                            "hist_presy",                                     
+                                            "hist_presy",         
+                                            "hist_presz",     
+                                            "hist_dres",
+                                            "hist_gres",    
+                                            "hist_mu",
+                                            "hist_expmu",
+                                            "hist_sigma",
+                                            "hist_tau",
+                                            "hist_kappa",
+                                            "hist_hpresy",    
+                                            "hist_hpresz",
+                                            "hist_hdres"
 #if PROFILING > 0                
                                            ,"timing"
 #endif
@@ -247,7 +264,38 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
           opts_maxit = opts ? mxGetField(opts, 0, "maxit") : 0;
       }
             
+#if defined EXPCONE
+      /* Catch the expcone options*/
+      opts_centrality = opts ? mxGetField(opts, 0, "CENTRALITY") : 0;
+      if( !opts_centrality ){
+        opts_centrality = opts ? mxGetField(opts,0,"centrality") : 0;
+      } 
+     
+      opts_cent_vars = opts ? mxGetField(opts, 0, "CENT_VARS") : 0;
+      if( !opts_cent_vars ){
+        opts_cent_vars = opts ? mxGetField(opts,0,"cent_vars") : 0;
+      } 
 
+      opts_potential = opts ? mxGetField(opts, 0, "POTENTIAL") : 0;
+      if( !opts_potential ){
+        opts_potential = opts ? mxGetField(opts,0,"potential") : 0;
+      } 
+
+      opts_one_mu = opts ? mxGetField(opts, 0, "ONE_MU") : 0;
+      if( !opts_one_mu ){
+        opts_one_mu = opts ? mxGetField(opts,0,"one_mu") : 0;
+      } 
+
+      opts_init = opts ? mxGetField(opts, 0, "INITIALIZATION") : 0;
+      if( !opts_init ){
+        opts_init = opts ? mxGetField(opts,0,"initialization") : 0;
+      } 
+
+      opts_second_order = opts ? mxGetField(opts, 0, "SECOND_ORDER") : 0;
+      if( !opts_init ){
+        opts_second_order = opts ? mxGetField(opts,0,"second_order") : 1;
+      }
+#endif
       /* Catch ECOS BB options */
       opts_mi_verbose = opts ? mxGetField(opts, 0, "MI_VERBOSE") : NULL;
       if( opts_mi_verbose == NULL ){
@@ -575,9 +623,24 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
         }
         if(opts_potential != NULL)
         {
-            mywork->stgs->potential = mxIsLogical(opts_potential) ? (idxint)(*mxGetLogicals(opts_potential)) : (idxint)(*mxGetPr(opts_verbose));
+            mywork->stgs->potential = (idxint)(*mxGetPr(opts_potential));
         }
-
+        if(opts_cent_vars != NULL)
+        {
+            mywork->stgs->cent_vars = (idxint)(*mxGetPr(opts_cent_vars));
+        }
+        if(opts_one_mu != NULL)
+        {            
+            mywork->stgs->one_mu = (idxint)(*mxGetPr(opts_one_mu));
+        }
+        if(opts_init != NULL)
+        {
+           mywork->stgs->initialization = (idxint)(*mxGetPr(opts_init));
+        }  
+        if(opts_second_order != NULL)
+        {
+           mywork->stgs->second_order = (idxint)(*mxGetPr(opts_second_order));
+        }
 #endif
 
 
@@ -670,8 +733,7 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
 		outvar = mxCreateDoubleMatrix(1, 1, mxREAL);
 		*mxGetPr(outvar) = (double)mywork->stgs->feastol;
 		mxSetField(plhs[2], 0, "r0", outvar);
-        
-        /* 12. iterations */
+         
         /* 16. Set mixed integer iteration count */
         if (opts_bool_idx != NULL || opts_int_idx != NULL){
             outvar = mxCreateDoubleMatrix(1, 1, mxREAL);
@@ -681,8 +743,90 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
     		outvar = mxCreateDoubleMatrix(1, 1, mxREAL);
     		*mxGetPr(outvar) = (double)mywork->info->iter;
     		mxSetField(plhs[2], 0, "iter", outvar);
-        }
+        
+#ifdef EXPCONE
 
+        /* 12. iteration history */        
+       /* 
+        outvar = mxCreateDoubleMatrix(0, 0, mxREAL);
+        mxSetPr(outvar, mywork->info->hist_presy);
+        mxSetM(outvar, mywork->stgs->maxit);
+        mxSetN(outvar, 1);       
+        mxSetField(plhs[2], 0, "hist_presy", outvar); 
+
+        outvar = mxCreateDoubleMatrix(0, 0, mxREAL);
+        mxSetPr(outvar, mywork->info->hist_presz);
+        mxSetM(outvar, mywork->stgs->maxit);
+        mxSetN(outvar, 1);       
+        mxSetField(plhs[2], 0, "hist_presz", outvar);
+
+        outvar = mxCreateDoubleMatrix(0, 0, mxREAL);
+        mxSetPr(outvar, mywork->info->hist_dres);
+        mxSetM(outvar, mywork->stgs->maxit);
+        mxSetN(outvar, 1);       
+        mxSetField(plhs[2], 0, "hist_dresz", outvar);
+
+
+        outvar = mxCreateDoubleMatrix(0, 0, mxREAL);
+        mxSetPr(outvar, mywork->info->hist_dres);
+        mxSetM(outvar, mywork->stgs->maxit);
+        mxSetN(outvar, 1);       
+        mxSetField(plhs[2], 0, "hist_gres", outvar);
+
+        outvar = mxCreateDoubleMatrix(0, 0, mxREAL);
+        mxSetPr(outvar, mywork->info->hist_mu);
+        mxSetM(outvar, mywork->stgs->maxit);
+        mxSetN(outvar, 1);       
+        mxSetField(plhs[2], 0, "hist_mu", outvar);
+
+        outvar = mxCreateDoubleMatrix(0, 0, mxREAL);
+        mxSetPr(outvar, mywork->info->hist_expmu);
+        mxSetM(outvar, mywork->stgs->maxit);
+        mxSetN(outvar, 1);       
+        mxSetField(plhs[2], 0, "hist_expmu", outvar);
+
+        outvar = mxCreateDoubleMatrix(0, 0, mxREAL);
+        mxSetPr(outvar, mywork->info->hist_sigma);
+        mxSetM(outvar, mywork->stgs->maxit);
+        mxSetN(outvar, 1);       
+        mxSetField(plhs[2], 0, "hist_sigma", outvar);
+
+
+        outvar = mxCreateDoubleMatrix(0, 0, mxREAL);
+        mxSetPr(outvar, mywork->info->hist_tau);
+        mxSetM(outvar, mywork->stgs->maxit);
+        mxSetN(outvar, 1);       
+        mxSetField(plhs[2], 0, "hist_tau", outvar);
+
+
+        outvar = mxCreateDoubleMatrix(0, 0, mxREAL);
+        mxSetPr(outvar, mywork->info->hist_kappa);
+        mxSetM(outvar, mywork->stgs->maxit);
+        mxSetN(outvar, 1);       
+        mxSetField(plhs[2], 0, "hist_kappa", outvar);
+
+        outvar = mxCreateDoubleMatrix(0, 0, mxREAL);
+        mxSetPr(outvar, mywork->info->hist_hpresy);
+        mxSetM(outvar, mywork->stgs->maxit);
+        mxSetN(outvar, 1);       
+        mxSetField(plhs[2], 0, "hist_hpresy", outvar);
+
+        outvar = mxCreateDoubleMatrix(0, 0, mxREAL);
+        mxSetPr(outvar, mywork->info->hist_hpresz);
+        mxSetM(outvar, mywork->stgs->maxit);
+        mxSetN(outvar, 1);       
+        mxSetField(plhs[2], 0, "hist_hpresz", outvar);
+
+        outvar = mxCreateDoubleMatrix(0, 0, mxREAL);
+        mxSetPr(outvar, mywork->info->hist_hdres);
+        mxSetM(outvar, mywork->stgs->maxit);
+        mxSetN(outvar, 1);       
+        mxSetField(plhs[2], 0, "hist_hdres", outvar);
+        */
+        freeHistory(mywork);
+
+#endif
+      }
 
         /* 13. infostring */
         if (opts_bool_idx != NULL || opts_int_idx != NULL){
