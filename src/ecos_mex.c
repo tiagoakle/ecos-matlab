@@ -292,7 +292,7 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
       } 
 
       opts_second_order = opts ? mxGetField(opts, 0, "SECOND_ORDER") : 0;
-      if( !opts_init ){
+      if( !opts_second_order ){
         opts_second_order = opts ? mxGetField(opts,0,"second_order") : 1;
       }
 #endif
@@ -639,7 +639,7 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
         }  
         if(opts_second_order != NULL)
         {
-           mywork->stgs->second_order = (idxint)(*mxGetPr(opts_second_order));
+           mywork->stgs->second_order = (idxint)(*mxGetPr(opts_second_order));           
         }
 #endif
 
