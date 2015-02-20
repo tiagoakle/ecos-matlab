@@ -746,13 +746,12 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
         
 #ifdef EXPCONE
 
-        /* 12. iteration history */        
-       /* 
+        /* 12. iteration history */                
         outvar = mxCreateDoubleMatrix(0, 0, mxREAL);
         mxSetPr(outvar, mywork->info->hist_presy);
         mxSetM(outvar, mywork->stgs->maxit);
         mxSetN(outvar, 1);       
-        mxSetField(plhs[2], 0, "hist_presy", outvar); 
+        mxSetField(plhs[2], 0, "hist_presy", outvar);
 
         outvar = mxCreateDoubleMatrix(0, 0, mxREAL);
         mxSetPr(outvar, mywork->info->hist_presz);
@@ -764,11 +763,10 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
         mxSetPr(outvar, mywork->info->hist_dres);
         mxSetM(outvar, mywork->stgs->maxit);
         mxSetN(outvar, 1);       
-        mxSetField(plhs[2], 0, "hist_dresz", outvar);
-
+        mxSetField(plhs[2], 0, "hist_dres", outvar);
 
         outvar = mxCreateDoubleMatrix(0, 0, mxREAL);
-        mxSetPr(outvar, mywork->info->hist_dres);
+        mxSetPr(outvar, mywork->info->hist_gres);
         mxSetM(outvar, mywork->stgs->maxit);
         mxSetN(outvar, 1);       
         mxSetField(plhs[2], 0, "hist_gres", outvar);
@@ -791,13 +789,11 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
         mxSetN(outvar, 1);       
         mxSetField(plhs[2], 0, "hist_sigma", outvar);
 
-
         outvar = mxCreateDoubleMatrix(0, 0, mxREAL);
         mxSetPr(outvar, mywork->info->hist_tau);
         mxSetM(outvar, mywork->stgs->maxit);
         mxSetN(outvar, 1);       
         mxSetField(plhs[2], 0, "hist_tau", outvar);
-
 
         outvar = mxCreateDoubleMatrix(0, 0, mxREAL);
         mxSetPr(outvar, mywork->info->hist_kappa);
@@ -822,8 +818,9 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
         mxSetM(outvar, mywork->stgs->maxit);
         mxSetN(outvar, 1);       
         mxSetField(plhs[2], 0, "hist_hdres", outvar);
-        */
-        freeHistory(mywork);
+        
+        //freeHistory(mywork);
+        
 
 #endif
       }
